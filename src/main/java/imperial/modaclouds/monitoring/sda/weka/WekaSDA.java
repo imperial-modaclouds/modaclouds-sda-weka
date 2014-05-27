@@ -81,7 +81,7 @@ public class WekaSDA {
 
 		while(true) {
 
-			if (System.currentTimeMillis() - startTime > 60000) {
+			if (System.currentTimeMillis() - startTime > 10000) {
 
 				Set<KBEntity> dcConfig = kbConnector.getAll(StatisticalDataAnalyzer.class);
 
@@ -102,8 +102,8 @@ public class WekaSDA {
 					for (Parameter par: sdas.getParameters()) {
 						switch (par.getName()) {
 						case "timeStep":
-							period.add(Integer.valueOf(par.getValue()));
-							nextPauseTime.add(Integer.valueOf(par.getValue()));
+							period.add(Integer.valueOf(par.getValue())*1000);
+							nextPauseTime.add(Integer.valueOf(par.getValue())*1000);
 							break;
 						}
 					}
@@ -113,6 +113,17 @@ public class WekaSDA {
 					}
 
 				}
+				
+				if (dcConfig.size() == 0) {
+					try {
+						Thread.sleep(10000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					continue;
+				}
+				
 				startTime = System.currentTimeMillis();
 			}
 
@@ -137,7 +148,7 @@ public class WekaSDA {
 				value = correlation.correlate(targetResources.get(index), targetMetric.get(index), parameters.get(index));
 				break;
 			}
-						
+			
 			if (Math.abs(value + 1) >= 0.00001) {
 				System.out.println("value: "+value);
 				try {
