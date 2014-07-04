@@ -153,8 +153,7 @@ public class WekaSDA {
 				System.out.println("value: "+value);
 				try {
 					ddaConnector.sendSyncMonitoringDatum(String.valueOf(value), returnedMetric.get(index), monitoredResourceID);
-				} catch (ServerErrorException | StreamErrorException
-						| ValidationErrorException e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}

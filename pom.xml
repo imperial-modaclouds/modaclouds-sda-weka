@@ -4,7 +4,7 @@
 
 	<groupId>imperial.modaclouds.monitoring</groupId>
 	<artifactId>sda-weka</artifactId>
-	<version>1.0.1</version>
+	<version>1.0.2</version>
 	<packaging>jar</packaging>
 
 	<name>retriever</name>
@@ -47,7 +47,7 @@
 		<dependency>
 			<groupId>it.polimi.modaclouds.monitoring</groupId>
 			<artifactId>dda-api</artifactId>
-			<version>1.0.1</version>
+			<version>1.0.2</version>
 		</dependency>
 		<dependency>
 			<groupId>it.polimi.modaclouds.monitoring</groupId>
