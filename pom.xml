@@ -64,7 +64,7 @@
 		<dependency>
 			<groupId>imperial.modaclouds.monitoring</groupId>
 			<artifactId>data-retriever</artifactId>
-			<version>1.0.1</version>
+			<version>1.0.2</version>
 		</dependency>
 		<dependency>
 			<groupId>nz.ac.waikato.cms.weka</groupId>
@@ -89,7 +89,7 @@
 		<dependency>
 			<groupId>it.polimi.modaclouds.monitoring</groupId>
 			<artifactId>metrics-observer</artifactId>
-			<version>0.1</version>
+			<version>1.0.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

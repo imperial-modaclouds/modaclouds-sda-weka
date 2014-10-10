@@ -55,9 +55,7 @@ public class WekaSDA {
 	 * @param args
 	 */
 	public static void main(String[] args) {	
-		
-		monitoredResourceID = "FrontendVM";
-		
+				
 		try {
 			//objectStoreConnector = ObjectStoreConnector.getInstance();
 			//MO.setKnowledgeBaseURL(objectStoreConnector.getKBUrl());
@@ -81,10 +79,12 @@ public class WekaSDA {
 
 		while(true) {
 
-			if (System.currentTimeMillis() - startTime > 10000) {
+			if (System.currentTimeMillis() - startTime > 60000) {
 
 				Set<KBEntity> dcConfig = kbConnector.getAll(StatisticalDataAnalyzer.class);
 
+				System.out.println(dcConfig.size());
+				
 				for (KBEntity kbEntity: dcConfig) {
 					StatisticalDataAnalyzer sdas = (StatisticalDataAnalyzer) kbEntity;
 
@@ -96,9 +96,9 @@ public class WekaSDA {
 					returnedMetric.add(sdas.getReturnedMetric());
 
 					targetMetric.add(sdas.getTargetMetric());
-
+					
 					type.add(sdas.getAggregateFunction());
-
+					
 					for (Parameter par: sdas.getParameters()) {
 						switch (par.getName()) {
 						case "timeStep":
@@ -109,7 +109,7 @@ public class WekaSDA {
 					}
 
 					for (MonitorableResource resource: sdas.getTargetResources()) {
-						targetResources.add(resource.getId());
+						targetResources.add(resource.getUri());
 					}
 
 				}
@@ -152,7 +152,7 @@ public class WekaSDA {
 			if (Math.abs(value + 1) >= 0.00001) {
 				System.out.println("value: "+value);
 				try {
-					ddaConnector.sendSyncMonitoringDatum(String.valueOf(value), returnedMetric.get(index), monitoredResourceID);
+					ddaConnector.sendSyncMonitoringDatum(String.valueOf(value), returnedMetric.get(index), targetResources.get(index));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

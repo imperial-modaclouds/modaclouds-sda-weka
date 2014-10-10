@@ -27,6 +27,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Set;
 
 import weka.classifiers.Classifier;
@@ -45,6 +46,9 @@ public double correlate(String targetResource, String targetMetric, Set<Paramete
 		ArrayList<ArrayList<String>> timestamps = new ArrayList<ArrayList<String>>();
 		ArrayList<ArrayList<String>> data = new ArrayList<ArrayList<String>>();
 		
+		System.out.println(targetResource);
+		System.out.println(targetMetric);
+		
 		ValueSet targetData = Client_Server.obtainData(targetResource, targetMetric);
 		
 		if (targetData == null) {
@@ -57,7 +61,8 @@ public double correlate(String targetResource, String targetMetric, Set<Paramete
 		
 		ArrayList<String> metricName = new ArrayList<String>();
 		metricName.add("time");
-		metricName.add(targetResource+targetMetric);
+		int index = targetResource.lastIndexOf("/");
+		metricName.add(targetResource.substring(index+1)+targetMetric);
 		
 		int predictionStep = 0;
 		String otherTarget1 = null;
@@ -74,12 +79,14 @@ public double correlate(String targetResource, String targetMetric, Set<Paramete
 				break;
 			case "otherTarget1":
 				otherTarget1 = par.getValue();
+				System.out.println("otherTarget1: "+otherTarget1);
 				break;
 			case "otherTarget2":
 				otherTarget2 = par.getValue();
 				break;
 			case "otherMetric1":
 				otherMetric1 = par.getValue();
+				System.out.println("otherMetric1: "+otherMetric1);
 				break;
 			case "otherMetric2":
 				otherMetric2 = par.getValue();
@@ -88,23 +95,30 @@ public double correlate(String targetResource, String targetMetric, Set<Paramete
 				method = par.getValue();
 				break;
 			case "isTraining":
-				isTraining = Integer.valueOf(isTraining);
+				isTraining = Integer.valueOf(par.getValue());
+				System.out.println("isTraining: "+isTraining);
 				break;
 			}
 		}
 		
 		if (otherTarget1 != null) {
 			ValueSet temp = Client_Server.obtainData(otherTarget1, otherMetric1);
+			if (temp == null) {
+				System.out.println("No additional data received");
+				return -1;
+			}
 			timestamps.add(temp.getTimestamps());
 			data.add(temp.getValues());
-			metricName.add(otherTarget1+otherMetric1);
+			index = otherTarget1.lastIndexOf("/");
+			metricName.add(otherTarget1.substring(index+1)+otherMetric1);
 		}
 		
 		if (otherTarget2 != null) {
 			ValueSet temp = Client_Server.obtainData(otherTarget2, otherMetric2);
 			timestamps.add(temp.getTimestamps());
 			data.add(temp.getValues());
-			metricName.add(otherTarget2+otherMetric2);
+			index = otherTarget2.lastIndexOf("/");
+			metricName.add(otherTarget2.substring(index+1)+otherMetric2);
 		}
 		
 		if (isTraining == 1) {
@@ -118,7 +132,11 @@ public double correlate(String targetResource, String targetMetric, Set<Paramete
 			
 			double[] value = compute(metricName.get(1)+"CorrelationTrain.arff", metricName.get(1)+"CorrelationTest.arff", method, metricName.get(1));
 
-			return value[predictionStep-1];
+			System.out.println("Correlation result: "+ Arrays.toString(value));
+			
+			return value[0];
+			
+			
 		}
 		
 		
