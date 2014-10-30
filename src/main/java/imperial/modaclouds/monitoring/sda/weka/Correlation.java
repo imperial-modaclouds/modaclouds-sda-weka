@@ -20,7 +20,6 @@ package imperial.modaclouds.monitoring.sda.weka;
 
 import imperial.modaclouds.monitoring.data_retriever.Client_Server;
 import imperial.modaclouds.monitoring.data_retriever.ValueSet;
-import it.polimi.modaclouds.qos_models.monitoring_ontology.Parameter;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -28,6 +27,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
 
 import weka.classifiers.Classifier;
@@ -41,7 +41,7 @@ import weka.core.Instances;
 
 public class Correlation {
 	
-public double correlate(String targetResource, String targetMetric, Set<Parameter> parameters) {
+public double correlate(String targetResource, String targetMetric, Map<String,String> parameters) {
 		
 		ArrayList<ArrayList<String>> timestamps = new ArrayList<ArrayList<String>>();
 		ArrayList<ArrayList<String>> data = new ArrayList<ArrayList<String>>();
@@ -72,34 +72,13 @@ public double correlate(String targetResource, String targetMetric, Set<Paramete
 		String method = null;
 		int isTraining = 0;
 		
-		for (Parameter par: parameters) {
-			switch (par.getName()) {
-			case "predictionStep":
-				predictionStep = Integer.valueOf(par.getValue());
-				break;
-			case "otherTarget1":
-				otherTarget1 = par.getValue();
-				System.out.println("otherTarget1: "+otherTarget1);
-				break;
-			case "otherTarget2":
-				otherTarget2 = par.getValue();
-				break;
-			case "otherMetric1":
-				otherMetric1 = par.getValue();
-				System.out.println("otherMetric1: "+otherMetric1);
-				break;
-			case "otherMetric2":
-				otherMetric2 = par.getValue();
-				break;
-			case "method":
-				method = par.getValue();
-				break;
-			case "isTraining":
-				isTraining = Integer.valueOf(par.getValue());
-				System.out.println("isTraining: "+isTraining);
-				break;
-			}
-		}
+		predictionStep = Integer.valueOf(parameters.get("predictionStep"));
+		otherTarget1 = parameters.get("otherTarget1");
+		otherTarget2 = parameters.get("otherTarget2");
+		otherMetric1 = parameters.get("otherMetric1");
+		otherMetric2 = parameters.get("otherMetric2");
+		method = parameters.get("method");
+		isTraining = Integer.valueOf(parameters.get("isTraining"));
 		
 		if (otherTarget1 != null) {
 			ValueSet temp = Client_Server.obtainData(otherTarget1, otherMetric1);

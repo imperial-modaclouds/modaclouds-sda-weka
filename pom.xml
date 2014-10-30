@@ -4,7 +4,7 @@
 
 	<groupId>imperial.modaclouds.monitoring</groupId>
 	<artifactId>sda-weka</artifactId>
-	<version>1.0.2</version>
+	<version>1.1</version>
 	<packaging>jar</packaging>
 
 	<name>retriever</name>
@@ -43,28 +43,15 @@
 			<artifactId>commons-math3</artifactId>
 			<version>3.2</version>
 		</dependency>
-
-		<dependency>
-			<groupId>it.polimi.modaclouds.monitoring</groupId>
-			<artifactId>dda-api</artifactId>
-			<version>1.0.2</version>
-		</dependency>
 		<dependency>
 			<groupId>it.polimi.modaclouds.monitoring</groupId>
 			<artifactId>object-store-api</artifactId>
 			<version>0.1</version>
 		</dependency>
 		<dependency>
-			<groupId>
-				it.polimi.modaclouds.monitoring.knowledge-base-api
-			</groupId>
-			<artifactId>knowledge-base-api</artifactId>
-			<version>1.0.1</version>
-		</dependency>
-		<dependency>
 			<groupId>imperial.modaclouds.monitoring</groupId>
 			<artifactId>data-retriever</artifactId>
-			<version>1.0.2</version>
+			<version>1.0.3</version>
 		</dependency>
 		<dependency>
 			<groupId>nz.ac.waikato.cms.weka</groupId>
@@ -81,6 +68,11 @@
 			<artifactId>commons-lang3</artifactId>
 			<version>3.3</version>
 		</dependency>
+	  	<dependency>
+			<groupId>commons-validator</groupId>
+			<artifactId>commons-validator</artifactId>
+			<version>1.4.0</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
@@ -88,8 +80,8 @@
 		</dependency>
 		<dependency>
 			<groupId>it.polimi.modaclouds.monitoring</groupId>
-			<artifactId>metrics-observer</artifactId>
-			<version>1.0.1-SNAPSHOT</version>
+			<artifactId>data-collector-factory</artifactId>
+			<version>0.3-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

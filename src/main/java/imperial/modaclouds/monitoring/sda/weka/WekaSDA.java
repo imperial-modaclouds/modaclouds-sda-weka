@@ -19,58 +19,60 @@
 package imperial.modaclouds.monitoring.sda.weka;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import polimi.deib.csparql_rest_api.exception.ServerErrorException;
 import polimi.deib.csparql_rest_api.exception.StreamErrorException;
 
 import imperial.modaclouds.monitoring.data_retriever.Client_Server;
-import it.polimi.modaclouds.monitoring.ddaapi.DDAConnector;
-import it.polimi.modaclouds.monitoring.ddaapi.ValidationErrorException;
-import it.polimi.modaclouds.monitoring.kb.api.KBConnector;
-import it.polimi.modaclouds.qos_models.monitoring_ontology.KBEntity;
-import it.polimi.modaclouds.qos_models.monitoring_ontology.MonitorableResource;
-import it.polimi.modaclouds.qos_models.monitoring_ontology.Parameter;
-import it.polimi.modaclouds.qos_models.monitoring_ontology.StatisticalDataAnalyzer;
+import imperial.modaclouds.monitoring.sda.basic.ConfigurationException;
+import imperial.modaclouds.monitoring.sda.basic.DataCollectorAgent;
+import it.polimi.modaclouds.monitoring.dcfactory.DCConfig;
+import it.polimi.modaclouds.monitoring.kb.api.DeserializationException;
+import it.polimi.modaclouds.qos_models.monitoring_ontology.VM;
 
 public class WekaSDA {
 
-	/**
-	 * Knowledge base connector.
-	 */
-	private static KBConnector kbConnector;
-	
-	/**
-	 * DDa connector.
-	 */
-	private static DDAConnector ddaConnector;
-	
 	/**
 	 * The unique monitored resource ID.
 	 */
 	private static String monitoredResourceID;
 
+	private static DataCollectorAgent dcAgent;
+
+	private static ArrayList<String> supportedFunctions;
+
 	/**
 	 * @param args
 	 */
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) {	
-				
+
+		initialize();
+
 		try {
-			//objectStoreConnector = ObjectStoreConnector.getInstance();
-			//MO.setKnowledgeBaseURL(objectStoreConnector.getKBUrl());
-			ddaConnector = DDAConnector.getInstance();
-			kbConnector = KBConnector.getInstance();
+			DataCollectorAgent.initialize();
+		} catch (ConfigurationException e1) {
+			e1.printStackTrace();
+		}
+		DataCollectorAgent.getInstance().startSyncingWithKB();
+
+		try {
 			Client_Server.retrieve(Integer.valueOf(args[0]));
-			//kbConnector.setKbURL(new URL(MO.getKnowledgeBaseDataURL()));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
-		ArrayList<Set<Parameter>> parameters = new ArrayList<Set<Parameter>>();
+		dcAgent = DataCollectorAgent.getInstance();
+
+		ArrayList<Map<String, String>> parameters = new ArrayList<Map<String, String>>();
 		ArrayList<String> returnedMetric = new ArrayList<String>();
 		ArrayList<String> targetMetric = new ArrayList<String>();
-		ArrayList<String> targetResources = new ArrayList<String>();
+		ArrayList<ArrayList<String>> targetResources = new ArrayList<ArrayList<String>>();
 		ArrayList<String> type = new ArrayList<String>();
 		ArrayList<Integer> period = new ArrayList<Integer>();
 		ArrayList<Integer> nextPauseTime = new ArrayList<Integer>();
@@ -81,41 +83,47 @@ public class WekaSDA {
 
 			if (System.currentTimeMillis() - startTime > 60000) {
 
-				Set<KBEntity> dcConfig = kbConnector.getAll(StatisticalDataAnalyzer.class);
+				Collection<DCConfig> dcConfig = dcAgent.getConfiguration(DataCollectorAgent.getVmId(),null);
 
 				System.out.println(dcConfig.size());
-				
-				for (KBEntity kbEntity: dcConfig) {
-					StatisticalDataAnalyzer sdas = (StatisticalDataAnalyzer) kbEntity;
 
-					//dc.setEnabled(true);
-					//kbConnector.add(dc);
+				for (DCConfig dc : dcConfig) {
 
-					parameters.add(sdas.getParameters());
+					if (supportedFunctions.contains(dc.getMonitoredMetric())) {
+						parameters.add(dc.getParameters());
+						returnedMetric.add(dc.getMonitoredMetric());
+						type.add(dc.getMonitoredMetric());
+					}
 
-					returnedMetric.add(sdas.getReturnedMetric());
+					if (dc.getParameters().get("samplingTime") != null) {
+						period.add(Integer.valueOf(dc.getParameters().get("samplingTime"))*1000);
+						nextPauseTime.add(Integer.valueOf(dc.getParameters().get("samplingTime"))*1000);
+					}
 
-					targetMetric.add(sdas.getTargetMetric());
-					
-					type.add(sdas.getAggregateFunction());
-					
-					for (Parameter par: sdas.getParameters()) {
-						switch (par.getName()) {
-						case "timeStep":
-							period.add(Integer.valueOf(par.getValue())*1000);
-							nextPauseTime.add(Integer.valueOf(par.getValue())*1000);
-							break;
+					Set<String> resourceType = dc.getMonitoredResourcesTypes();
+					Iterator<String> itResourceType = resourceType.iterator();
+					ArrayList<String> vms = new ArrayList<String>();
+					while (itResourceType.hasNext()) {
+						Set<VM> vmTypes = null;
+						try {
+							vmTypes = (Set<VM>)dcAgent.getEntitiesByPropertyValue(itResourceType.next(), "type", "model");
+						} catch (DeserializationException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						Iterator<VM> itVM = vmTypes.iterator();
+
+						while (itVM.hasNext()) {
+							vms.add(itVM.next().getId());
 						}
 					}
-
-					for (MonitorableResource resource: sdas.getTargetResources()) {
-						targetResources.add(resource.getUri());
-					}
+					targetResources.add(vms);
 
 				}
-				
-				if (dcConfig.size() == 0) {
+
+				if (type.size() == 0) {
 					try {
+						System.out.println("No weka SDA function received.");
 						Thread.sleep(10000);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
@@ -123,7 +131,7 @@ public class WekaSDA {
 					}
 					continue;
 				}
-				
+
 				startTime = System.currentTimeMillis();
 			}
 
@@ -137,27 +145,36 @@ public class WekaSDA {
 			}
 
 			double value = -1;
-			
-			switch(type.get(index)) {
-			case "ForecastingML":
-				TimeSeriesForecasting forecasting = new TimeSeriesForecasting();
-				value = forecasting.forecast(targetResources.get(index), targetMetric.get(index), parameters.get(index));
-				break;
-			case "Correlation":
-				Correlation correlation = new Correlation();
-				value = correlation.correlate(targetResources.get(index), targetMetric.get(index), parameters.get(index));
-				break;
-			}
-			
-			if (Math.abs(value + 1) >= 0.00001) {
-				System.out.println("value: "+value);
-				try {
-					ddaConnector.sendSyncMonitoringDatum(String.valueOf(value), returnedMetric.get(index), targetResources.get(index));
-				} catch (Exception e) {
-					e.printStackTrace();
+
+			for (int i = 0; i < targetResources.get(index).size(); i++) {
+				switch(type.get(index)) {
+				case "ForecastingML":
+					TimeSeriesForecasting forecasting = new TimeSeriesForecasting();
+					value = forecasting.forecast(targetResources.get(index).get(i), targetMetric.get(index), parameters.get(index));
+					break;
+				case "Correlation":
+					Correlation correlation = new Correlation();
+					value = correlation.correlate(targetResources.get(index).get(i), targetMetric.get(index), parameters.get(index));
+					break;
+				}
+				if (Math.abs(value + 1) >= 0.00001) {
+					System.out.println("value: "+value);
+					try {
+						dcAgent.sendSyncMonitoringDatum(String.valueOf(value), returnedMetric.get(index), targetResources.get(index).get(i));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 			}
+
+
 		}
+	}
+
+	private static void initialize() {
+		supportedFunctions = new ArrayList<String>();
+		supportedFunctions.add("ForecastingML");
+		supportedFunctions.add("Correlation");
 	}
 
 }

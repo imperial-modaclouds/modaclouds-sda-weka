@@ -20,12 +20,12 @@ package imperial.modaclouds.monitoring.sda.weka;
 
 import imperial.modaclouds.monitoring.data_retriever.Client_Server;
 import imperial.modaclouds.monitoring.data_retriever.ValueSet;
-import it.polimi.modaclouds.qos_models.monitoring_ontology.Parameter;
 
 import java.io.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -39,7 +39,7 @@ import weka.classifiers.timeseries.WekaForecaster;
 
 public class TimeSeriesForecasting {
 	
-	public double forecast(String targetResource, String targetMetric, Set<Parameter> parameters) {
+	public double forecast(String targetResource, String targetMetric, Map<String, String> parameters) {
 		
 		ArrayList<ArrayList<String>> timestamps = new ArrayList<ArrayList<String>>();
 		ArrayList<ArrayList<String>> data = new ArrayList<ArrayList<String>>();
@@ -65,28 +65,12 @@ public class TimeSeriesForecasting {
 		String otherMetric2 = null;
 		String method = null;
 		
-		for (Parameter par: parameters) {
-			switch (par.getName()) {
-			case "predictionStep":
-				predictionStep = Integer.valueOf(par.getValue());
-				break;
-			case "otherTarget1":
-				otherTarget1 = par.getValue();
-				break;
-			case "otherTarget2":
-				otherTarget2 = par.getValue();
-				break;
-			case "otherMetric1":
-				otherMetric1 = par.getValue();
-				break;
-			case "otherMetric2":
-				otherMetric2 = par.getValue();
-				break;
-			case "method":
-				method = par.getValue();
-				break;
-			}
-		}
+		predictionStep = Integer.valueOf(parameters.get("predictionStep"));
+		otherTarget1 = parameters.get("otherTarget1");
+		otherTarget2 = parameters.get("otherTarget2");
+		otherMetric1 = parameters.get("otherMetric1");
+		otherMetric2 = parameters.get("otherMetric2");
+		method = parameters.get("method");
 		
 		if (otherTarget1 != null) {
 			ValueSet temp = Client_Server.obtainData(otherTarget1, otherMetric1);
