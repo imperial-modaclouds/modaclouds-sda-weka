@@ -18,61 +18,58 @@
  */
 package imperial.modaclouds.monitoring.sda.weka;
 
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import polimi.deib.csparql_rest_api.exception.ServerErrorException;
-import polimi.deib.csparql_rest_api.exception.StreamErrorException;
-
 import imperial.modaclouds.monitoring.data_retriever.Client_Server;
+import imperial.modaclouds.monitoring.sda.basic.Config;
 import imperial.modaclouds.monitoring.sda.basic.ConfigurationException;
-import imperial.modaclouds.monitoring.sda.basic.DataCollectorAgent;
-import it.polimi.modaclouds.monitoring.dcfactory.DCConfig;
-import it.polimi.modaclouds.monitoring.kb.api.DeserializationException;
-import it.polimi.modaclouds.qos_models.monitoring_ontology.VM;
+import it.polimi.tower4clouds.common.net.UnexpectedAnswerFromServerException;
+import it.polimi.tower4clouds.data_collector_library.DCAgent;
+import it.polimi.tower4clouds.manager.api.ManagerAPI;
+import it.polimi.tower4clouds.model.data_collectors.DCDescriptor;
+import it.polimi.tower4clouds.model.ontology.Resource;
 
 public class WekaSDA {
 
 	/**
-	 * The unique monitored resource ID.
-	 */
-	private static String monitoredResourceID;
-
-	private static DataCollectorAgent dcAgent;
-
-	private static ArrayList<String> supportedFunctions;
-
-	/**
 	 * @param args
 	 */
-	@SuppressWarnings("unchecked")
 	public static void main(String[] args) {	
 
-		initialize();
-
+		Config config = null;
 		try {
-			DataCollectorAgent.initialize();
-		} catch (ConfigurationException e1) {
-			e1.printStackTrace();
+			config = Config.getInstance();
+		} catch (ConfigurationException e2) {
+			e2.printStackTrace();
 		}
-		DataCollectorAgent.getInstance().startSyncingWithKB();
+		ManagerAPI manager = new ManagerAPI(config.getMmIP(),
+				config.getMmPort());
+
+		DCAgent dcAgent = new DCAgent(manager);
+		DCDescriptor dcDescriptor = new DCDescriptor();
+		dcDescriptor.setConfigSyncPeriod(60);
+		dcAgent.setDCDescriptor(dcDescriptor);
+		dcAgent.start();
+
+		String port = System.getenv("MODACLOUDS_JAVA_SDA_PORT");
+		if (port == null){
+			System.out.println("MODACLOUDS_JAVA_SDA_PORT is not found");
+			System.exit(-1);
+		}
 
 		try {
-			Client_Server.retrieve(Integer.valueOf(args[0]));
+			Client_Server.retrieve(Integer.parseInt(port));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
-		dcAgent = DataCollectorAgent.getInstance();
-
 		ArrayList<Map<String, String>> parameters = new ArrayList<Map<String, String>>();
 		ArrayList<String> returnedMetric = new ArrayList<String>();
 		ArrayList<String> targetMetric = new ArrayList<String>();
-		ArrayList<ArrayList<String>> targetResources = new ArrayList<ArrayList<String>>();
 		ArrayList<String> type = new ArrayList<String>();
 		ArrayList<Integer> period = new ArrayList<Integer>();
 		ArrayList<Integer> nextPauseTime = new ArrayList<Integer>();
@@ -83,50 +80,49 @@ public class WekaSDA {
 
 			if (System.currentTimeMillis() - startTime > 60000) {
 
-				Collection<DCConfig> dcConfig = dcAgent.getConfiguration(DataCollectorAgent.getVmId(),null);
+				Set<String> requiredMetrics = null;
+				try {
+					requiredMetrics = manager.getRequiredMetrics();
+				} catch (UnexpectedAnswerFromServerException | IOException e1) {
+					e1.printStackTrace();
+				}
 
-				System.out.println(dcConfig.size());
+				for (String requiredMetric : requiredMetrics) {
+					if (requiredMetric.startsWith("ForecastingML") || requiredMetric.startsWith("Correlation")) {
+						dcDescriptor.addMonitoredResource(requiredMetric,
+								new Resource()); 
+						dcAgent.refresh();
 
-				for (DCConfig dc : dcConfig) {
-
-					if (supportedFunctions.contains(dc.getMonitoredMetric())) {
-						parameters.add(dc.getParameters());
-						returnedMetric.add(dc.getMonitoredMetric());
-						type.add(dc.getMonitoredMetric());
-					}
-
-					if (dc.getParameters().get("samplingTime") != null) {
-						period.add(Integer.valueOf(dc.getParameters().get("samplingTime"))*1000);
-						nextPauseTime.add(Integer.valueOf(dc.getParameters().get("samplingTime"))*1000);
-					}
-
-					Set<String> resourceType = dc.getMonitoredResourcesTypes();
-					Iterator<String> itResourceType = resourceType.iterator();
-					ArrayList<String> vms = new ArrayList<String>();
-					while (itResourceType.hasNext()) {
-						Set<VM> vmTypes = null;
+						int index = requiredMetric.indexOf("_");
+						String metricToBeForecast = requiredMetric.substring(index+1);
+						System.out.println("Forecast required for metric "
+								+ metricToBeForecast);
 						try {
-							vmTypes = (Set<VM>)dcAgent.getEntitiesByPropertyValue(itResourceType.next(), "type", "model");
-						} catch (DeserializationException e) {
-							// TODO Auto-generated catch block
+							manager.registerHttpObserver(metricToBeForecast, config.getSdaURL(),
+									"TOWER/JSON");
+						} catch (UnexpectedAnswerFromServerException
+								| IOException e) {
 							e.printStackTrace();
 						}
-						Iterator<VM> itVM = vmTypes.iterator();
 
-						while (itVM.hasNext()) {
-							vms.add(itVM.next().getId());
+						parameters.add(dcAgent.getParameters(requiredMetric));
+
+						if (dcAgent.getParameters(requiredMetric).get("samplingTime") != null) {
+							period.add(Integer.valueOf(dcAgent.getParameters(requiredMetric).get("samplingTime"))*1000);
+							nextPauseTime.add(Integer.valueOf(dcAgent.getParameters(requiredMetric).get("samplingTime"))*1000);
 						}
+						targetMetric.add(metricToBeForecast);
+						returnedMetric.add(requiredMetric);
+						type.add(requiredMetric.substring(0, index));
 					}
-					targetResources.add(vms);
-
 				}
+
 
 				if (type.size() == 0) {
 					try {
 						System.out.println("No weka SDA function received.");
 						Thread.sleep(10000);
 					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 					continue;
@@ -146,35 +142,36 @@ public class WekaSDA {
 
 			double value = -1;
 
-			for (int i = 0; i < targetResources.get(index).size(); i++) {
-				switch(type.get(index)) {
-				case "ForecastingML":
-					TimeSeriesForecasting forecasting = new TimeSeriesForecasting();
-					value = forecasting.forecast(targetResources.get(index).get(i), targetMetric.get(index), parameters.get(index));
-					break;
-				case "Correlation":
-					Correlation correlation = new Correlation();
-					value = correlation.correlate(targetResources.get(index).get(i), targetMetric.get(index), parameters.get(index));
-					break;
-				}
-				if (Math.abs(value + 1) >= 0.00001) {
-					System.out.println("value: "+value);
-					try {
-						dcAgent.sendSyncMonitoringDatum(String.valueOf(value), returnedMetric.get(index), targetResources.get(index).get(i));
-					} catch (Exception e) {
-						e.printStackTrace();
+			ArrayList<String> targetResources = new ArrayList<String>();
+			targetResources = Client_Server.getMetricMap().get(targetMetric.get(index));
+
+			if (targetResources == null) {
+				System.out.println("No resources found for metric: "+targetMetric.get(index));
+			}
+			else
+				for (int i = 0; i < targetResources.size(); i++) {
+					switch(type.get(index)) {
+					case "ForecastingML":
+						TimeSeriesForecasting forecasting = new TimeSeriesForecasting();
+						value = forecasting.forecast(targetResources.get(i), targetMetric.get(index), parameters.get(index));
+						break;
+					case "Correlation":
+						Correlation correlation = new Correlation();
+						value = correlation.correlate(targetResources.get(i), targetMetric.get(index), parameters.get(index));
+						break;
+					}
+					if (Math.abs(value + 1) >= 0.00001) {
+						System.out.println("value: "+value);
+						try {
+							dcAgent.send(new Resource(null, targetResources.get(i)), returnedMetric.get(index), value);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 					}
 				}
-			}
-
-
 		}
-	}
 
-	private static void initialize() {
-		supportedFunctions = new ArrayList<String>();
-		supportedFunctions.add("ForecastingML");
-		supportedFunctions.add("Correlation");
 	}
-
 }
+
+

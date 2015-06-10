@@ -4,7 +4,7 @@
 
 	<groupId>imperial.modaclouds.monitoring</groupId>
 	<artifactId>sda-weka</artifactId>
-	<version>1.1</version>
+	<version>1.2</version>
 	<packaging>jar</packaging>
 
 	<name>retriever</name>
@@ -43,15 +43,10 @@
 			<artifactId>commons-math3</artifactId>
 			<version>3.2</version>
 		</dependency>
-		<dependency>
-			<groupId>it.polimi.modaclouds.monitoring</groupId>
-			<artifactId>object-store-api</artifactId>
-			<version>0.1</version>
-		</dependency>
-		<dependency>
-			<groupId>imperial.modaclouds.monitoring</groupId>
-			<artifactId>data-retriever</artifactId>
-			<version>1.0.3</version>
+	  	<dependency>
+			<groupId>it.polimi.tower4clouds</groupId>
+			<artifactId>data-collector-library</artifactId>
+			<version>0.2</version>
 		</dependency>
 		<dependency>
 			<groupId>nz.ac.waikato.cms.weka</groupId>
@@ -79,9 +74,9 @@
 			<version>4.0</version>
 		</dependency>
 		<dependency>
-			<groupId>it.polimi.modaclouds.monitoring</groupId>
-			<artifactId>data-collector-factory</artifactId>
-			<version>0.3-SNAPSHOT</version>
+			<groupId>imperial.modaclouds.monitoring</groupId>
+			<artifactId>data-retriever</artifactId>
+			<version>1.0.4</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
@@ -149,4 +144,69 @@
 			</plugin>
 		</plugins>
 	</build>
+	
+	<profiles>
+		<profile>
+			<id>mosaic-rpm</id>
+			<build>
+				<resources>
+					<resource>
+						<directory>scripts</directory>
+						<filtering>true</filtering>
+					</resource>
+				</resources>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>rpm-maven-plugin</artifactId>
+						<version>2.1.3</version>
+						<executions>
+							<execution>
+								<id>generate-rpm</id>
+								<goals>
+									<goal>rpm</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<distribution>tower4clouds</distribution>
+							<name>modaclouds-services-${dist.file.name}-${project.version}</name>
+							<group>System Environment/Daemons</group>
+							<prefix>/opt/modaclouds-services-${dist.file.name}-${project.version}</prefix>
+							<targetOS>linux</targetOS>
+							<mappings>
+								<mapping>
+									<directory>/opt/modaclouds-services-${dist.file.name}-${project.version}/lib/distribution</directory>
+									<filemode>644</filemode>
+									<username>root</username>
+									<groupname>root</groupname>
+									<sources>
+										<source>
+											<location>target/${project.artifactId}-${project.version}-jar-with-dependencies.jar</location>
+											<destination>service.jar</destination>
+										</source>
+									</sources>
+								</mapping>
+								<mapping>
+									<directory>/opt/modaclouds-services-${dist.file.name}-${project.version}/bin</directory>
+									<filemode>755</filemode>
+									<username>root</username>
+									<groupname>root</groupname>
+									<sources>
+										<source>
+											<location>target/classes/start-script-4-mosaic</location>
+											<destination>service-run.bash</destination>
+										</source>
+									</sources>
+								</mapping>
+							</mappings>
+							<requires>
+								<require>mosaic-rt-jre-7</require>
+							</requires>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>
