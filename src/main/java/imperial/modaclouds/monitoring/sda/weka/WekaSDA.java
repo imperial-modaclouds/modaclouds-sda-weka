@@ -95,7 +95,15 @@ public class WekaSDA {
 						dcAgent.refresh();
 
 						int index = requiredMetric.indexOf("_");
-						String metricToBeForecast = requiredMetric.substring(index+1);
+						String subString = requiredMetric.substring(index+1);
+
+						String metricToBeForecast = null;
+						if (subString.indexOf("_") == -1) {
+							metricToBeForecast = subString;
+						}
+						else {
+							metricToBeForecast = subString.substring(0,subString.indexOf("_"));
+						}
 						System.out.println("Forecast required for metric "
 								+ metricToBeForecast);
 						try {
