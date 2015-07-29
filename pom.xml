@@ -25,6 +25,10 @@
 
 	<repositories>
 		<repository>
+			<id>my-local-repo</id>
+			<url>file://${basedir}/repo</url>
+		</repository>
+		<repository>
 			<id>deib-polimi-releases</id>
 			<url>https://github.com/deib-polimi/deib-polimi-mvn-repo/raw/master/releases</url>
 		</repository>
@@ -46,7 +50,7 @@
 	  	<dependency>
 			<groupId>it.polimi.tower4clouds</groupId>
 			<artifactId>data-collector-library</artifactId>
-			<version>0.2</version>
+			<version>0.2.3</version>
 		</dependency>
 		<dependency>
 			<groupId>nz.ac.waikato.cms.weka</groupId>
