@@ -30,6 +30,7 @@ import imperial.modaclouds.monitoring.sda.basic.ConfigurationException;
 import it.polimi.tower4clouds.common.net.UnexpectedAnswerFromServerException;
 import it.polimi.tower4clouds.data_collector_library.DCAgent;
 import it.polimi.tower4clouds.manager.api.ManagerAPI;
+import it.polimi.tower4clouds.manager.api.NotFoundException;
 import it.polimi.tower4clouds.model.data_collectors.DCDescriptor;
 import it.polimi.tower4clouds.model.ontology.Resource;
 
@@ -100,16 +101,16 @@ public class WekaSDA {
 						try {
 							manager.registerHttpObserver(metricToBeForecast, config.getSdaURL(),
 									"TOWER/JSON");
-						} catch (UnexpectedAnswerFromServerException
+						} catch (NotFoundException
 								| IOException e) {
 							e.printStackTrace();
 						}
 
-						parameters.add(dcAgent.getParameters(requiredMetric));
+						parameters.add(dcAgent.getParameters(new Resource(), requiredMetric));
 
-						if (dcAgent.getParameters(requiredMetric).get("samplingTime") != null) {
-							period.add(Integer.valueOf(dcAgent.getParameters(requiredMetric).get("samplingTime"))*1000);
-							nextPauseTime.add(Integer.valueOf(dcAgent.getParameters(requiredMetric).get("samplingTime"))*1000);
+						if (dcAgent.getParameters(new Resource(), requiredMetric).get("samplingTime") != null) {
+							period.add(Integer.valueOf(dcAgent.getParameters(new Resource(), requiredMetric).get("samplingTime"))*1000);
+							nextPauseTime.add(Integer.valueOf(dcAgent.getParameters(new Resource(), requiredMetric).get("samplingTime"))*1000);
 						}
 						targetMetric.add(metricToBeForecast);
 						returnedMetric.add(requiredMetric);
