@@ -8,3 +8,9 @@ Then run it as:
 ```java
 java -jar sda-weka-1.0.jar <port>
 ```
+
+##License##
+
+Licensed under the [GNU GENERAL PUBLIC LICENSE][1]
+
+[1]: http://www.gnu.org/licenses/gpl-3.0.en.html
